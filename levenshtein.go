@@ -1,21 +1,24 @@
 // Copyright (c) 2015, Arbo von Monkiewitsch All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+// Some portions Copyright (c) 2017 Phil Pearl
 
 package levenshtein
 
 type Context struct {
-	column []int
+	intSlice []int
 }
 
-func (c *Context) reset(l int) {
-	if cap(c.column) < l {
-		c.column = make([]int, l)
+func (c *Context) getIntSlice(l int) []int {
+	if cap(c.intSlice) < l {
+		c.intSlice = make([]int, l)
 	}
-	c.column = c.column[:l]
-	for i := range c.column {
-		c.column[i] = i
-	}
+	return c.intSlice[:l]
+}
+
+func Distance(s1, s2 string) int {
+	c := Context{}
+	return c.Distance(s1, s2)
 }
 
 // The Levenshtein distance between two strings is defined as the minimum
@@ -29,33 +32,45 @@ func (c *Context) reset(l int) {
 // http://en.wikibooks.org/wiki/Algorithm_implementation/Strings/Levenshtein_distance#C
 func (c *Context) Distance(str1, str2 string) int {
 	var cost, lastdiag, olddiag int
+
 	s1 := []rune(str1)
 	s2 := []rune(str2)
+
 	len_s1 := len(s1)
 	len_s2 := len(s2)
 
-	c.reset(len_s1 + 1)
+	if len_s2 == 0 {
+		return len_s1
+	}
 
-	for x := 1; x <= len_s2; x++ {
-		c.column[0] = x
-		lastdiag = x - 1
+	column := c.getIntSlice(len_s1 + 1)
+	// Column[0] will be initialised at the start of the first loop before it
+	// is read, unless len_s2 is zero, which we deal with above
+	for i := range column[1:] {
+		column[i+1] = i + 1
+	}
 
-		s2Rune := s2[x-1]
+	for x := 0; x < len_s2; x++ {
+		s2Rune := s2[x]
+		column[0] = x + 1
+		lastdiag = x
 
-		for y := 1; y <= len_s1; y++ {
-			olddiag = c.column[y]
+		for y := 0; y < len_s1; y++ {
+			olddiag = column[y+1]
 			cost = 0
-			if s1[y-1] != s2Rune {
+			if s1[y] != s2Rune {
 				cost = 1
 			}
-			c.column[y] = min(
-				c.column[y]+1,
-				c.column[y-1]+1,
-				lastdiag+cost)
+			column[y+1] = min(
+				column[y+1]+1,
+				column[y]+1,
+				lastdiag+cost,
+			)
 			lastdiag = olddiag
 		}
 	}
-	return c.column[len_s1]
+
+	return column[len_s1]
 }
 
 func min(a, b, c int) int {

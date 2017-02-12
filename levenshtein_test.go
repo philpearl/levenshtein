@@ -7,6 +7,8 @@ package levenshtein
 import (
 	"fmt"
 	"testing"
+
+	arbovm "github.com/arbovm/levenshtein"
 )
 
 var distanceTests = []struct {
@@ -21,6 +23,8 @@ var distanceTests = []struct {
 	{"ab", "aaa", 2},
 	{"bbb", "a", 3},
 	{"kitten", "sitting", 3},
+	{"a", "", 1},
+	{"", "a", 1},
 	{"aa", "aü", 1},
 	{"Fön", "Föm", 1},
 }
@@ -51,6 +55,23 @@ func BenchmarkDistance(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		total += c.Distance(s1, s2)
+	}
+
+	if total == 0 {
+		b.Logf("total is %d", total)
+	}
+}
+
+func BenchmarkDistanceOriginal(b *testing.B) {
+	s1 := "frederick"
+	s2 := "fredelstick"
+	total := 0
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		total += arbovm.Distance(s1, s2)
 	}
 
 	if total == 0 {
